@@ -1,18 +1,13 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchProjects } from '../Utils/Api';
-import { Project } from '../Utils/Interfaces';
-
+import ProjectCards from '../Components/ProjectCards';
+import ViewWrapper from '../Components/ViewWrapper';
 const Home: React.FC = () => {
-    const { data, status } = useQuery<Project[], Error>({
-        queryKey: ["projects"],
-        queryFn: fetchProjects
-    });
-
-    console.log(status);
-    console.log(data);
-
-    return <div>home</div>;
+    return <ViewWrapper >
+        <ProjectCards />
+        <stripe-pricing-table pricing-table-id="prctbl_1PZkIv2MtWvH2jpOF0JOzRBP"
+            publishable-key="pk_test_51PZiyY2MtWvH2jpOQOb2WFFGxIw8jxLxYACcnRzNg30RqNy7IqJmhdRvrbjp8N8nWiqwwBeCw5DbZ407eUaxwR8b00Kg0q0N1g">
+        </stripe-pricing-table>
+    </ViewWrapper>;
 };
 
 export default Home;
