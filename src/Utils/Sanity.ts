@@ -38,3 +38,4 @@ export const fetchProjects = async (): Promise<Project[]> => {
     const projects = await client.fetch(query);
     return projects;
 };
+

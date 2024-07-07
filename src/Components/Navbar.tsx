@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
 import {
-    Button, AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemText, ListItemIcon, Box, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField
+    Button, AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemText, ListItemIcon, Box
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import { Link, useNavigate } from 'react-router-dom';
 import { styled } from '@mui/system';
-import { signInWithGooglePopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from '../Utils/Firebase'; // Adjust the import paths as necessary
+import { signOut } from '../Utils/Firebase'; // Adjust the import paths as necessary
 
 const NavLink = styled(Link)({
     textDecoration: 'none',
     color: 'inherit',
 });
 
+
 const Navbar: React.FC = () => {
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
     const toggleDrawer = (open: boolean) => () => {
@@ -29,58 +27,22 @@ const Navbar: React.FC = () => {
         setDrawerOpen(false);
     };
 
-    const handleGoogleSignIn = async () => {
-        try {
-            await signInWithGooglePopup();
-            console.log('Sign in successful');
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleDialogOpen = () => {
-        setDialogOpen(true);
-    };
-
-    const handleDialogClose = () => {
-        setDialogOpen(false);
-    };
-
-    const handleEmailSignIn = async () => {
-        try {
-            await signInWithEmailAndPassword(email, password);
-            console.log('Sign in successful');
-            setDialogOpen(false);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleRegister = async () => {
-        try {
-            await createUserWithEmailAndPassword(email, password);
-            console.log('Registration successful');
-            setDialogOpen(false);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
     return (
         <Box sx={{ flexGrow: 1 }}>
-            <AppBar position="static" variant="outlined">
+            <AppBar position="fixed" variant="outlined" elevation={0}>
                 <Toolbar>
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                        Alkymisten
-                    </Typography>
-                    <Button color="inherit" onClick={handleGoogleSignIn}>Sign in with Google</Button>
-                    <Button color="inherit" onClick={handleDialogOpen}>Sign in / Register</Button>
+                    <NavLink to="/" style={{ flexGrow: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                            ALKYMISTEN
+                        </Typography>
+                    </NavLink>
+                    <Button color="inherit" onClick={signOut}>Sign out</Button>
                     <IconButton
                         edge="start"
                         color="inherit"
                         aria-label="menu"
                         onClick={toggleDrawer(true)}
-                        sx={{ mr: 2 }}
+                        sx={{ ml: 2 }} // Add margin-left to create space between Sign out button and menu icon
                     >
                         <MenuIcon />
                     </IconButton>
@@ -95,7 +57,7 @@ const Navbar: React.FC = () => {
                 >
                     <List>
                         <NavLink to="/">
-                            <ListItem button onClick={handleNavigation('/')}>
+                            <ListItem onClick={handleNavigation('/')}>
                                 <ListItemIcon>
                                     <HomeIcon />
                                 </ListItemIcon>
@@ -106,40 +68,6 @@ const Navbar: React.FC = () => {
                     </List>
                 </Box>
             </Drawer>
-            <Dialog open={dialogOpen} onClose={handleDialogClose}>
-                <DialogTitle>Sign in / Register</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        To sign in or register, please enter your email address and password here.
-                    </DialogContentText>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        id="email"
-                        label="Email Address"
-                        type="email"
-                        fullWidth
-                        variant="standard"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <TextField
-                        margin="dense"
-                        id="password"
-                        label="Password"
-                        type="password"
-                        fullWidth
-                        variant="standard"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleDialogClose}>Cancel</Button>
-                    <Button onClick={handleEmailSignIn}>Sign in</Button>
-                    <Button onClick={handleRegister}>Register</Button>
-                </DialogActions>
-            </Dialog>
         </Box>
     );
 };

@@ -22,11 +22,10 @@ const GlobalStyle = createGlobalStyle`
 const theme = createTheme({
   palette: {
     primary: {
-      
       main: '#D2415B',
     },
     secondary: {
-      main: '#F0A1B2', // Adjust this to match your desired secondary color
+      main: '#3f3f3f', // Adjust this to match your desired secondary color
     },
     error: {
       main: '#FF6B6B', // Adjust this to match your desired error color

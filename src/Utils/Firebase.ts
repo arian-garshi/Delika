@@ -2,8 +2,17 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword, createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore"; // Import Firestore functions
+import {
+    getAuth,
+    signInWithPopup,
+    GoogleAuthProvider,
+    signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
+    createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword,
+    getRedirectResult,
+    EmailAuthProvider,
+    onAuthStateChanged,
+} from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore functions
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -19,17 +28,84 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const authProvider = new GoogleAuthProvider();
-const db = getFirestore(app); // Initialize Firestore
 
-authProvider.setCustomParameters({
+// Initialize Firebase services
+export const googleAutoProvider = new GoogleAuthProvider();
+const emailAuthProvider = new EmailAuthProvider();
+export const auth = getAuth();
+
+googleAutoProvider.setCustomParameters({
     prompt: 'select_account'
 });
 
-export const auth = getAuth();
-export const signInWithGooglePopup = () => signInWithPopup(auth, authProvider);
-export const signInWithEmailAndPassword = (email: string, password: string) => firebaseSignInWithEmailAndPassword(auth, email, password);
-export const createUserWithEmailAndPassword = (email: string, password: string) => firebaseCreateUserWithEmailAndPassword(auth, email, password);
+auth.languageCode = 'no';
+
+// Initialize Firestore
+const db = getFirestore(app);
+
+window.onload = () => {
+    getRedirectResult(auth)
+        .then((result) => {
+            if (result) {
+                const user = result.user;
+                console.log('User: ', user);
+            }
+        })
+        .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            const email = error.email;
+            const credential = GoogleAuthProvider.credentialFromError(error);
+            console.error('Error getting redirect result: ', errorCode, errorMessage, email, credential);
+        });
+};
+
+
+export const signInWithGoogle = (): Promise<{ user: any }> => {
+    return signInWithPopup(auth, googleAutoProvider)
+        .then((result) => {
+            const user = result.user;
+            return { user: user };
+        })
+        .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            throw new Error(`${errorCode} - ${errorMessage}`);
+        }) as Promise<{ user: any }>;
+}
+
+export const signInWithEmailAndPassword = (email: string, password: string): Promise<{ user: any }> => {
+    return firebaseSignInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            return { user: user };
+        })
+        .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            throw new Error(`${errorCode} - ${errorMessage}`);
+        }) as Promise<{ user: any }>;
+}
+
+interface FirebaseError {
+    code: string;
+    message: string;
+}
+
+export const createUserWithEmailAndPassword = async (email: string, password: string): Promise<{ user: any }> => {
+    try {
+        const userCredential: { user: any } = await firebaseCreateUserWithEmailAndPassword(auth, email, password);
+        const userData = userCredential.user;
+        return { user: userData };
+    } catch (error: unknown) {
+        const firebaseError = error as FirebaseError;
+        const errorCode = firebaseError.code;
+        const errorMessage = firebaseError.message;
+        throw new Error(`${errorCode} - ${errorMessage}`);
+    }
+};
+
+
 
 // Function to add user data to Firestore
 export const addUserToFirestore = async (userId: string, data: any) => {
@@ -39,3 +115,55 @@ export const addUserToFirestore = async (userId: string, data: any) => {
         console.error('Error adding user to Firestore: ', error);
     }
 };
+
+// Function to get user data from Firestore whenever status of the user changes
+export const onAuthStateChange = (callback: (user: any) => void) => {
+    onAuthStateChanged(auth, (user) => {
+        callback(user);
+    });
+}
+
+
+// Function to sign out user
+export const signOut = async () => {
+    try {
+        await auth.signOut();
+    } catch (error) {
+        console.error('Error signing out: ', error);
+    }
+};
+
+export const registerUser = async (email: string, password: any, name: any, lastname: any, firebaseId: string) => {
+    try {
+
+        const userCredential = await createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+            email: user.email,
+            name: name,
+            lastname: lastname,
+            firebaseId: firebaseId
+        });
+
+        console.log("User registered successfully:", user.uid);
+        return user;
+    } catch (error) {
+        console.error("Error registering user:", error);
+        throw error;
+    }
+};
+
+const fetchUser = async (userId: string) => {
+    const userRef = doc(db, "users", userId);
+    const userSnapshot = await getDoc(userRef);
+
+    if (userSnapshot.exists()) {
+        return userSnapshot.data();
+    } else {
+        console.error("User not found");
+        return null;
+    }
+}
