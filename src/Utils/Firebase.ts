@@ -8,7 +8,7 @@ import {
     getRedirectResult,
     onAuthStateChanged,
 } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore functions
+import { getFirestore, doc, setDoc, /*getDoc*/ } from "firebase/firestore"; // Import Firestore functions
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -149,7 +149,7 @@ export const registerUser = async (email: string, password: any, name: any, last
         throw error;
     }
 };
-
+/*
 const fetchUser = async (userId: string) => {
     const userRef = doc(db, "users", userId);
     const userSnapshot = await getDoc(userRef);
@@ -160,4 +160,4 @@ const fetchUser = async (userId: string) => {
         console.error("User not found");
         return null;
     }
-}
+}*/
