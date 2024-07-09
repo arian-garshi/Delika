@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import {
     getAuth,
     signInWithPopup,
@@ -9,7 +6,6 @@ import {
     signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
     createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword,
     getRedirectResult,
-    EmailAuthProvider,
     onAuthStateChanged,
 } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore functions
@@ -27,11 +23,9 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
 // Initialize Firebase services
 export const googleAutoProvider = new GoogleAuthProvider();
-const emailAuthProvider = new EmailAuthProvider();
 export const auth = getAuth();
 
 googleAutoProvider.setCustomParameters({
@@ -70,7 +64,7 @@ export const signInWithGoogle = (): Promise<{ user: any }> => {
         .catch((error) => {
             const errorCode = error.code;
             const errorMessage = error.message;
-            throw new Error(`${errorCode} - ${errorMessage}`);
+            return Error(`${errorCode} - ${errorMessage}`);
         }) as Promise<{ user: any }>;
 }
 
@@ -83,7 +77,7 @@ export const signInWithEmailAndPassword = (email: string, password: string): Pro
         .catch((error) => {
             const errorCode = error.code;
             const errorMessage = error.message;
-            throw new Error(`${errorCode} - ${errorMessage}`);
+            return Error(`${errorCode} - ${errorMessage}`);
         }) as Promise<{ user: any }>;
 }
 
@@ -133,7 +127,7 @@ export const signOut = async () => {
     }
 };
 
-export const registerUser = async (email: string, password: any, name: any, lastname: any, firebaseId: string) => {
+export const registerUser = async (email: string, password: any, name: any, lastname: any) => {
     try {
 
         const userCredential = await createUserWithEmailAndPassword(email, password);
@@ -145,7 +139,7 @@ export const registerUser = async (email: string, password: any, name: any, last
             email: user.email,
             name: name,
             lastname: lastname,
-            firebaseId: firebaseId
+            firebaseId: user.uid,
         });
 
         console.log("User registered successfully:", user.uid);

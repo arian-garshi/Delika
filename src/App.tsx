@@ -1,4 +1,3 @@
-import React from 'react';
 import { createGlobalStyle } from 'styled-components';
 import AppRoutes from './Routes';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
@@ -20,6 +19,13 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 const theme = createTheme({
+  typography: {
+    fontFamily: [
+      '"Segoe UI Emoji"',
+      '"Segoe UI Symbol"',
+    ].join(','), 
+  },
+
   palette: {
     primary: {
       main: '#D2415B',

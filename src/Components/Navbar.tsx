@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
                             ALKYMISTEN
                         </Typography>
                     </NavLink>
-                    <Button color="inherit" onClick={signOut}>Sign out</Button>
+                    <Button color="inherit" onClick={signOut}>Logg ut</Button>
                     <IconButton
                         edge="start"
                         color="inherit"
