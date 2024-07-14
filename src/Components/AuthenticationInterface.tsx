@@ -1,11 +1,11 @@
 import { useState, useEffect, SetStateAction } from 'react';
-import { Button, TextField, Typography, Divider } from '@mui/material';
+import { Button, TextField, Divider, Alert } from '@mui/material';
 import { signInWithGoogle, signInWithEmailAndPassword, registerUser, onAuthStateChange } from '../Utils/Firebase'; // Adjust the import paths as necessary
 import { Google } from '@mui/icons-material';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
 const StyledLinkSpan = styled.span`
-     //theme primary color
      color: #D2415B;
 
     cursor: pointer;
@@ -23,6 +23,9 @@ const signInRequirements = {
     "isInUse": "E-postadressen er allerede i bruk",
     "incorrectPassword": "Feil passord eller e-postadresse",
     "noUser": "Brukeren finnes ikke",
+    "alreadyInUse": "E-post adressen er allerede i bruk",
+    "wrongCredentials": "Feil e-postadresse eller passord",
+    "tooManyAttempts": "For mange forsøk, prøv igjen senere eller tilbakestill passord",
 };
 
 const emailRequirements = {
@@ -35,6 +38,7 @@ const passwordRequirements = {
     "oneUppercase": "Passordet må inneholde minst en stor bokstav",
     "oneLowercase": "Passordet må inneholde minst en liten bokstav",
     "oneSpecialChar": "Passordet må inneholde minst ett spesialtegn",
+    "popUpClosed": "Popup lukket av bruker før innlogging var fullført",
 };
 
 const passwordConfirmationRequirements = {
@@ -47,20 +51,41 @@ const nameRequirements = {
 
 
 const communicateFirebaseError = (error: any) => {
-    switch (error.code) {
-        case 'auth/invalid-email':
-            return emailRequirements['correctFormat'];
-        case 'auth/weak-password':
-            return passwordRequirements['sixCharacters'];
-        case 'auth/email-already-in-use':
-            return signInRequirements['isInUse'];
-        case 'auth/wrong-password':
-            return signInRequirements['incorrectPassword'];
-        case 'auth/user-not-found':
-            return signInRequirements['noUser'];
-        default:
-            return error.message;
-    }
+    console.log(error);
+    console.log(error.code);
+    console.log(error.message);
+
+    if (error.message.includes('auth/invalid-email'))
+        return emailRequirements['correctFormat'];
+
+    else if (error.message.includes('auth/weak-password'))
+        return passwordRequirements['sixCharacters'];
+
+    else if (error.message.includes('auth/email-already-in-use'))
+        return signInRequirements['isInUse'];
+
+    else if (error.message.includes('auth/wrong-password'))
+        return signInRequirements['incorrectPassword'];
+
+    else if (error.message.includes('auth/user-not-found'))
+        return signInRequirements['noUser'];
+
+    else if (error.message.includes('auth/invalid-credential'))
+        return signInRequirements['wrongCredentials'];
+
+    else if (error.message.includes('auth/popup-closed-by-user'))
+        return passwordRequirements['popUpClosed'];
+
+    else if (error.message.includes('auth/cancelled-popup-request'))
+        return passwordRequirements['popUpClosed'];
+
+    else if (error.message.includes('auth/too-many-requests'))
+        return signInRequirements['tooManyAttempts'];
+
+
+    else
+        return error.message;
+
 }
 
 const FirebaseAuthUI = () => {
@@ -74,7 +99,7 @@ const FirebaseAuthUI = () => {
     const [signedInUser, setSignedInUser] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [firebaseErrors, setFirebaseErrors] = useState<string[]>([]);
+    const [firebaseError, setFirebaseError] = useState<string>('');
     const [emailErrors, setEmailErrors] = useState<string[]>([]);
     const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
     const [passwordConfirmationErrors, setPasswordConfirmationErrors] = useState<string[]>([]);
@@ -82,17 +107,18 @@ const FirebaseAuthUI = () => {
     const [lastNameErrors, setLastNameErrors] = useState<string[]>([]);
 
     const handleGoogleSignIn = async () => {
+        setFirebaseError('');
         try {
             const result = await signInWithGoogle();
             if (result instanceof Error) {
-                // add the error to the firebaseErrors
-                setFirebaseErrors([...firebaseErrors, result.message]);
+                const errorMessage = communicateFirebaseError(result);
+                setFirebaseError(errorMessage);
                 return;
             }
             console.log('Sign in successful', result);
         } catch (error) {
             console.error('Google sign-in error:', error);
-            setFirebaseErrors([...firebaseErrors, 'Google sign-in error']);
+            setFirebaseError('Ukjent feil ved innlogging med Google');
         }
     };
 
@@ -214,35 +240,38 @@ const FirebaseAuthUI = () => {
     }, [lastName]);
 
     const handleEmailSignIn = async () => {
+        setFirebaseError('');
+
         try {
             const result = await signInWithEmailAndPassword(email, password);
             if (result instanceof Error) {
-                console.log('Sign in error:', result.message);
                 const errorMessage = communicateFirebaseError(result);
-                setFirebaseErrors([...firebaseErrors, errorMessage]);
+                setFirebaseError(errorMessage);
                 return;
             }
             console.log('Sign in successful', result);
         } catch (error) {
-            console.error('Email sign-in error:', error);
-            setFirebaseErrors([...firebaseErrors, 'Email sign-in error']);
+            const errorMessage = communicateFirebaseError(error);
+            setFirebaseError(errorMessage);
         }
     };
 
     const handleRegister = async () => {
+        setFirebaseError('');
+
         try {
             const result = await registerUser(email, password, firstName, lastName);
 
             if (result instanceof Error) {
-                console.log('Register error:', result.message);
                 const errorMessage = communicateFirebaseError(result);
-                setFirebaseErrors([...firebaseErrors, errorMessage]);
+                setFirebaseError(errorMessage);
                 return;
             }
             console.log('Register successful', result);
         } catch (error: any) {
             console.log(error.message);
-            setFirebaseErrors([...firebaseErrors, error.message]);
+            const errorMessage = communicateFirebaseError(error);
+            setFirebaseError(errorMessage);
         }
     };
 
@@ -287,6 +316,17 @@ const FirebaseAuthUI = () => {
 
         <Wrapper>
             <h2>{isRegisterMode ? 'Register' : 'Logg inn'}</h2>
+            <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: firebaseError ? 1 : 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                style={{ opacity: firebaseError ? 1 : 0 }}
+            >
+                <Alert severity='error' >
+                    {firebaseError}
+                </Alert>
+            </motion.div>
+
             {!isRegisterMode && (
                 <>
                     <Button
@@ -314,7 +354,7 @@ const FirebaseAuthUI = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={validateEmail}
                 error={emailErrors.length > 0}
-                helperText={emailErrors}
+                helperText={emailErrors.join(', ')}
             />
             <TextField
                 required
@@ -327,7 +367,8 @@ const FirebaseAuthUI = () => {
                 value={password}
                 onChange={(e: { target: { value: SetStateAction<string>; }; }) => [setPassword(e.target.value)]}
                 error={isRegisterMode && passwordErrors.length > 0}
-                helperText={isRegisterMode && passwordErrors}
+                helperText={isRegisterMode && passwordErrors.join(', ')}
+
             />
 
             {isRegisterMode && (
@@ -343,7 +384,7 @@ const FirebaseAuthUI = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         error={passwordConfirmationErrors.length > 0}
-                        helperText={passwordConfirmationErrors}
+                        helperText={passwordConfirmationErrors.join(', ')}
                     />
                     <TextField
                         required
@@ -356,7 +397,7 @@ const FirebaseAuthUI = () => {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         error={nameErrors.length > 0}
-                        helperText={nameErrors}
+                        helperText={nameErrors.join(', ')}
                         onBlur={validateName}
 
                     />
@@ -371,16 +412,10 @@ const FirebaseAuthUI = () => {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         error={lastNameErrors.length > 0}
-                        helperText={lastNameErrors}
+                        helperText={lastNameErrors.join(', ')}
                         onBlur={validateLastName}
                     />
                 </>
-            )}
-
-            {firebaseErrors.length > 0 && (
-                <Typography color="error" variant="body2" style={{ marginTop: '10px' }}>
-                    {firebaseErrors.join(', ')}
-                </Typography>
             )}
 
             <Button
@@ -396,14 +431,18 @@ const FirebaseAuthUI = () => {
                 {isRegisterMode ? (
                     <p>
                         Allerede en bruker?{' '}
-                        <StyledLinkSpan onClick={() => { setIsRegisterMode(false); }}>
+                        <StyledLinkSpan onClick={() => {
+                            setIsRegisterMode(false); setFirebaseError('');
+                        }}>
                             Logg inn
                         </StyledLinkSpan>
                     </p>
                 ) : (
                     <p>
                         Ny bruker?{' '}
-                        <StyledLinkSpan onClick={() => { setIsRegisterMode(true); }}>
+                        <StyledLinkSpan onClick={() => {
+                            setIsRegisterMode(true); setFirebaseError('');
+                        }}>
                             Registrer
                         </StyledLinkSpan>
                     </p>
