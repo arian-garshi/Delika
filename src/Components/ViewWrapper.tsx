@@ -4,6 +4,7 @@ const ViewWrapper = styled.div`
     width: 100%;
     margin:  auto;
     padding: 0 16px;
+    margin-top: 90px;
 
     @media (min-width: 768px) {
         max-width: 768px;

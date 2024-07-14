@@ -33,7 +33,7 @@ const Navbar: React.FC = () => {
                 <Toolbar>
                     <NavLink to="/" style={{ flexGrow: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            ALKYMISTEN
+                            DELIKA
                         </Typography>
                     </NavLink>
                     <Button color="inherit" onClick={signOut}>Logg ut</Button>

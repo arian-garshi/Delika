@@ -1,19 +1,17 @@
-export interface Project {
+export interface Shop {
     _id: string;
-    mainImage: {
+    logo: {
         asset: {
             url: string;
         };
     };
-    gallery?: {
-        asset: {
-            url: string;
-        };
-    }[];
-    title: string;
-    subTitle?: string;
-    description: string;
-    url?: string;
-    tags?: string[];
-    slug: string;
+    name: string;
+    slug: {
+        current: string;
+    };
+    website?: string;
+    subDomainName?: string;
+    city?: string;
+    country?: string;
+    description?: string;
 }

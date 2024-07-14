@@ -1,9 +1,9 @@
 import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
-import { Project } from './Interfaces';
+import { Shop } from './Interfaces';
 
 const client = createClient({
-    projectId: "zmnyi79s", // replace with your-project-id
+    projectId: "1o0mv0nx", // replace with your-project-id
     dataset: "production", // replace with your-dataset
     useCdn: true,
 });
@@ -32,10 +32,15 @@ export const generateImageUrl = (_ref: string, width: number, height: number): s
     return imageBuilder.url();
 }
 
-
-export const fetchProjects = async (): Promise<Project[]> => {
-    const query = '*[_type == "project"]{ _id, mainImage{asset->{url}}, gallery[]{asset->{url}}, title, subTitle, description, url, tags, slug }';
-    const projects = await client.fetch(query);
-    return projects;
+export const fetchShops = async (): Promise<Shop[]> => {
+    const query = '*[_type == "shops"]{ _id, slug, logo{asset->{url}}, name, website, subDomainName, city, country }';
+    const shops = await client.fetch(query);
+    return shops;
 };
 
+export const fetchShopBySlug = async (slug: string): Promise<Shop> => {
+    const query = `*[_type == "shops" && slug.current == $slug][0]{ _id, slug, logo{asset->{url}}, name, website, description, subDomainName, city, country, description }`;
+    const params = { slug };
+    const shop = await client.fetch(query, params);
+    return shop;
+};

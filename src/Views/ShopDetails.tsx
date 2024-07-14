@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { fetchProjects, generateImageUrl } from '../Utils/Sanity';
-import { Project } from '../Utils/Interfaces';
+import { fetchShopBySlug, generateImageUrl } from '../Utils/Sanity';
+import { Shop } from '../Utils/Interfaces';
 import { Typography, Card, CardContent, CardMedia, CircularProgress, IconButton, Grid, Box } from '@mui/material';
 import styled from 'styled-components';
 import ViewWrapper from '../Components/ViewWrapper';
@@ -14,25 +14,22 @@ const BackButton = styled(IconButton)`
 `;
 
 const ProjectDetails: React.FC = () => {
-    const { id } = useParams();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
+    const { slug } = useParams<{ slug: string }>();
 
-    const projects = queryClient.getQueryData<Project[]>(['projects']);
-    const project = projects?.find((proj) => proj._id === id);
+    if (!slug) {
+        throw new Error('No slug provided');
+    }
 
-    const { data, status } = useQuery<Project[], Error>({
-        queryKey: ["projects"],
-        queryFn: fetchProjects,
-        staleTime: 5 * 60 * 1000, // data will be considered fresh for 5 minutes
+    const { data, status } = useQuery<Shop, Error>({
+        queryKey: ["shop", slug],
+        queryFn: () => fetchShopBySlug(slug),
     });
 
     if (status === 'pending') return <CircularProgress />;
     if (status === 'error') return <Typography>Error loading project details</Typography>;
 
-    const projectData = data?.find((proj) => proj._id === id) || project;
-
-    if (!projectData) return <Typography>Project not found</Typography>;
+    if (!data) return <Typography>Project not found</Typography>;
 
     return (
         <ViewWrapper>
@@ -46,18 +43,15 @@ const ProjectDetails: React.FC = () => {
                             <CardMedia
                                 component="img"
                                 height="300"
-                                image={generateImageUrl(projectData.mainImage.asset.url, 600, 400)}
-                                alt={projectData.title}
+                                image={generateImageUrl(data.logo.asset.url, 600, 400)}
+                                alt={data.name}
                             />
                             <CardContent>
                                 <Typography variant="h4" component="div">
-                                    {projectData.title}
-                                </Typography>
-                                <Typography variant="h6" color="text.secondary">
-                                    {projectData.subTitle}
+                                    {data.name}
                                 </Typography>
                                 <Typography variant="body1" color="text.secondary">
-                                    {projectData.description}
+                                    {data.description}
                                 </Typography>
                             </CardContent>
                         </Card>
