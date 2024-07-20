@@ -13,7 +13,8 @@ const GlobalStyle = createGlobalStyle`
 
   body {
     font-family: 'Arial', sans-serif;
-    color: #333;
+    color: #dfdfdf;
+    background-color: #031525;
     line-height: 1.6;
   }
 `;
@@ -23,12 +24,13 @@ const theme = createTheme({
     fontFamily: [
       '"Segoe UI Emoji"',
       '"Segoe UI Symbol"',
-    ].join(','), 
+    ].join(','),
   },
 
   palette: {
+    mode: 'dark',
     primary: {
-      main: '#D2415B',
+      main: 'rgb(124,172,248)',
     },
     secondary: {
       main: '#3f3f3f', // Adjust this to match your desired secondary color
@@ -44,6 +46,14 @@ const theme = createTheme({
     },
     success: {
       main: '#66BB6A', // Adjust this to match your desired success color
+    },
+    background: {
+      default: '#071A2B', // Set default background for dark mode
+      paper: '#071A2B',   // Set paper background for dark mode
+    },
+    text: {
+      primary: '#ffffff', // Primary text color for dark mode
+      secondary: '#b0b0b0', // Secondary text color for dark mode
     },
   },
 });

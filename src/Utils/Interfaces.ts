@@ -1,17 +1,12 @@
-export interface Shop {
-    _id: string;
-    logo: {
-        asset: {
-            url: string;
-        };
-    };
+export interface UserProfile {
     name: string;
-    slug: {
-        current: string;
+    email?: string;
+    userType?: 'admin' | 'customer' | 'editor';
+    shop?: {
+        _type: 'reference';
+        _ref: string;
     };
-    website?: string;
-    subDomainName?: string;
-    city?: string;
-    country?: string;
-    description?: string;
+    createdAt?: string;
+    lastLogin?: string;
+    userId: string;
 }

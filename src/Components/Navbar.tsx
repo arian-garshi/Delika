@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Button, AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemText, ListItemIcon, Box
 } from '@mui/material';
@@ -6,17 +6,22 @@ import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import { Link, useNavigate } from 'react-router-dom';
 import { styled } from '@mui/system';
-import { signOut } from '../Utils/Firebase'; // Adjust the import paths as necessary
+import { signOut } from '../Utils/Firebase';
+import { useQueryClient } from '@tanstack/react-query';
 
 const NavLink = styled(Link)({
     textDecoration: 'none',
     color: 'inherit',
 });
 
+const Wrapper = styled(Box)({
+});
 
 const Navbar: React.FC = () => {
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [userData, setUserData] = useState<any>(null);
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const toggleDrawer = (open: boolean) => () => {
         setDrawerOpen(open);
@@ -27,9 +32,23 @@ const Navbar: React.FC = () => {
         setDrawerOpen(false);
     };
 
+    useEffect(() => {
+        const cachedUserData = queryClient.getQueryData(["userData"]);
+        setUserData(cachedUserData);
+        console.log('userData:', cachedUserData);
+
+        const unsubscribe = queryClient.getQueryCache().subscribe(() => {
+            const updatedUserData = queryClient.getQueryData(["userData"]);
+            setUserData(updatedUserData);
+            console.log('userData updated:', updatedUserData);
+        });
+
+        return () => unsubscribe();
+    }, [queryClient]);
+
     return (
-        <Box sx={{ flexGrow: 1 }}>
-            <AppBar position="fixed" variant="outlined" elevation={0}>
+        <Wrapper sx={{ flexGrow: 1 }}>
+            <AppBar position="fixed" variant="outlined" elevation={0} style={{ backgroundColor: '#071A2B' }}>
                 <Toolbar>
                     <NavLink to="/" style={{ flexGrow: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
@@ -64,11 +83,19 @@ const Navbar: React.FC = () => {
                                 <ListItemText primary="Hjem" />
                             </ListItem>
                         </NavLink>
+                        <NavLink to="/dashboard">
+                            <ListItem onClick={handleNavigation('/dashboard')}>
+                                <ListItemIcon>
+                                    <HomeIcon />
+                                </ListItemIcon>
+                                <ListItemText primary="Dashbord" />
+                            </ListItem>
+                        </NavLink>
                         {/* Add more navigation items as needed */}
                     </List>
                 </Box>
             </Drawer>
-        </Box>
+        </Wrapper>
     );
 };
 

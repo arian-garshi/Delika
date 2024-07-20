@@ -1,11 +1,12 @@
 import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
-import { Shop } from './Interfaces';
+import { UserProfile } from './Interfaces';
 
 const client = createClient({
     projectId: "1o0mv0nx", // replace with your-project-id
     dataset: "production", // replace with your-dataset
     useCdn: true,
+    token: "skEoofEMODNs7WvBPTEGe6EEJpjv04SmbbFDF56Xo0OAfrqp1Ry9CNXMmiwZsZgpzQVzT7vCC2AuFwga3nD8J4qqOqbYQYvRJtLBep6JS2bUqGT8ksIN5HKppIm9nF4tavRJCZ8d4Jq4TbIcg7SGuFQ7MdCGVNCFiEQG3PWdpHoKhaORD5Ew",
 });
 const builder = imageUrlBuilder(client);
 
@@ -32,15 +33,58 @@ export const generateImageUrl = (_ref: string, width: number, height: number): s
     return imageBuilder.url();
 }
 
-export const fetchShops = async (): Promise<Shop[]> => {
-    const query = '*[_type == "shops"]{ _id, slug, logo{asset->{url}}, name, website, subDomainName, city, country }';
-    const shops = await client.fetch(query);
-    return shops;
+export const createUserProfile = async (user: UserProfile) => {
+    const { name, email, userType, shop, createdAt, lastLogin, userId } = user;
+
+    const doc = {
+        _type: 'users',
+        name,
+        email,
+        userType,
+        shop,
+        createdAt,
+        lastLogin,
+        userId,
+    };
+
+    try {
+        const result = await client.create(doc);
+        console.log('User profile created:', result);
+        return result;
+    } catch (error) {
+        console.error('Error creating user profile:', error);
+        throw new Error('Could not create user profile');
+    }
 };
 
-export const fetchShopBySlug = async (slug: string): Promise<Shop> => {
-    const query = `*[_type == "shops" && slug.current == $slug][0]{ _id, slug, logo{asset->{url}}, name, website, description, subDomainName, city, country, description }`;
-    const params = { slug };
-    const shop = await client.fetch(query, params);
-    return shop;
+export const fetchUserById = async (id: string): Promise<UserProfile | undefined> => {
+    if (!id) {
+        return undefined;
+    }
+    const query = '*[_type == "users" && userId == $id][0]';
+
+    try {
+        const user = await client.fetch(query, { id });
+        console.log('Fetched user:', user);
+        return user || undefined;
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        throw new Error('Could not fetch user');
+    }
 };
+
+export const updateLastLogin = async (id: string) => {
+    const doc = {
+        _id: id,
+        lastLogin: new Date().toISOString(),
+    };
+
+    try {
+        const result = await client.patch(doc._id).commit();
+        console.log('Updated last login:', result);
+        return result;
+    } catch (error) {
+        console.error('Error updating last login:', error);
+        throw new Error('Could not update last login');
+    }
+}

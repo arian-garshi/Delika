@@ -8,17 +8,16 @@ import {
     getRedirectResult,
     onAuthStateChanged,
 } from "firebase/auth";
-import { getFirestore, doc, setDoc, /*getDoc*/ } from "firebase/firestore"; // Import Firestore functions
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDdWvfCOEOnvkhlwnXChMVi6vrrlHH-atw",
-    authDomain: "alkymisten-e5d66.firebaseapp.com",
-    projectId: "alkymisten-e5d66",
-    storageBucket: "alkymisten-e5d66.appspot.com",
-    messagingSenderId: "591397651261",
-    appId: "1:591397651261:web:355954a05214565af07b54",
-    measurementId: "G-FKBSJXJP5D"
+    apiKey: "AIzaSyAgM7oowVFrK1RuCOjUkPwt-wXtjq9Aztg",
+    authDomain: "delika-bc9be.firebaseapp.com",
+    projectId: "delika-bc9be",
+    storageBucket: "delika-bc9be.appspot.com",
+    messagingSenderId: "922740478818",
+    appId: "1:922740478818:web:51e5e3dfd5e63de573123b",
+    measurementId: "G-2TQT6JSH7M"
 };
 
 // Initialize Firebase
@@ -33,9 +32,6 @@ googleAutoProvider.setCustomParameters({
 });
 
 auth.languageCode = 'no';
-
-// Initialize Firestore
-const db = getFirestore(app);
 
 window.onload = () => {
     getRedirectResult(auth)
@@ -88,25 +84,14 @@ interface FirebaseError {
 
 export const createUserWithEmailAndPassword = async (email: string, password: string): Promise<{ user: any }> => {
     try {
-        const userCredential: { user: any } = await firebaseCreateUserWithEmailAndPassword(auth, email, password);
-        const userData = userCredential.user;
-        return { user: userData };
+        const userCredential = await firebaseCreateUserWithEmailAndPassword(auth, email, password);
+        console.log('User created: ', userCredential);
+        return userCredential;
     } catch (error: unknown) {
         const firebaseError = error as FirebaseError;
         const errorCode = firebaseError.code;
         const errorMessage = firebaseError.message;
         throw new Error(`${errorCode} - ${errorMessage}`);
-    }
-};
-
-
-
-// Function to add user data to Firestore
-export const addUserToFirestore = async (userId: string, data: any) => {
-    try {
-        await setDoc(doc(db, 'users', userId), data);
-    } catch (error) {
-        console.error('Error adding user to Firestore: ', error);
     }
 };
 
@@ -126,38 +111,3 @@ export const signOut = async () => {
         console.error('Error signing out: ', error);
     }
 };
-
-export const registerUser = async (email: string, password: any, name: any, lastname: any) => {
-    try {
-
-        const userCredential = await createUserWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-
-        const db = getFirestore();
-        const userRef = doc(db, "users", user.uid);
-        await setDoc(userRef, {
-            email: user.email,
-            name: name,
-            lastname: lastname,
-            firebaseId: user.uid,
-        });
-
-        console.log("User registered successfully:", user.uid);
-        return user;
-    } catch (error) {
-        console.error("Error registering user:", error);
-        throw error;
-    }
-};
-/*
-const fetchUser = async (userId: string) => {
-    const userRef = doc(db, "users", userId);
-    const userSnapshot = await getDoc(userRef);
-
-    if (userSnapshot.exists()) {
-        return userSnapshot.data();
-    } else {
-        console.error("User not found");
-        return null;
-    }
-}*/

@@ -1,12 +1,14 @@
 import { useState, useEffect, SetStateAction } from 'react';
 import { Button, TextField, Divider, Alert } from '@mui/material';
-import { signInWithGoogle, signInWithEmailAndPassword, registerUser, onAuthStateChange } from '../Utils/Firebase'; // Adjust the import paths as necessary
+import { signInWithGoogle, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChange } from '../Utils/Firebase'; // Adjust the import paths as necessary
 import { Google } from '@mui/icons-material';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fetchUserById, createUserProfile } from '../Utils/Sanity';
+import { useQueryClient } from '@tanstack/react-query';
 
 const StyledLinkSpan = styled.span`
-     color: #D2415B;
+     color: #90b8fa;
 
     cursor: pointer;
 `;
@@ -96,7 +98,7 @@ const FirebaseAuthUI = () => {
     const [lastName, setLastName] = useState('');
 
     const [isRegisterMode, setIsRegisterMode] = useState(false);
-    const [signedInUser, setSignedInUser] = useState<any>(null);
+    const [signedInUser, setSignedInUser] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const [firebaseError, setFirebaseError] = useState<string>('');
@@ -104,7 +106,26 @@ const FirebaseAuthUI = () => {
     const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
     const [passwordConfirmationErrors, setPasswordConfirmationErrors] = useState<string[]>([]);
     const [nameErrors, setNameErrors] = useState<string[]>([]);
+
     const [lastNameErrors, setLastNameErrors] = useState<string[]>([]);
+    const queryClient = useQueryClient();
+
+    /*
+    const { data, status } = useQuery<UserProfile, Error>({
+        queryKey: ["userData", signedInUser?.uid],
+        enabled: !!signedInUser?.uid,
+        queryFn: async () => {
+            const user = await fetchUserById(signedInUser?.userId);
+            queryClient.setQueryData(["usr", signedInUser?.uid], user);
+            return user as UserProfile;
+
+        },
+    });
+
+    console.log(data);
+*/
+    //if (status === 'pending') return <CircularProgress />;
+    //if (status === 'error') return <Typography>Error loading project details</Typography>;
 
     const handleGoogleSignIn = async () => {
         setFirebaseError('');
@@ -115,7 +136,25 @@ const FirebaseAuthUI = () => {
                 setFirebaseError(errorMessage);
                 return;
             }
-            console.log('Sign in successful', result);
+            console.log('Sign in successful with google', result);
+            const { uid } = result.user;
+
+
+            const sanityUserData = await fetchUserById(uid);
+            if (!sanityUserData) {
+                console.log('No user data found');
+                const user = {
+                    name: result.user.displayName,
+                    email: result.user.email,
+                    userId: uid,
+                    userType: 'customer' as 'customer' | 'admin' | 'editor' | undefined,
+                    lastLogin: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
+                };
+                await createUserProfile(user);
+
+                return;
+            } 
         } catch (error) {
             console.error('Google sign-in error:', error);
             setFirebaseError('Ukjent feil ved innlogging med Google');
@@ -220,6 +259,32 @@ const FirebaseAuthUI = () => {
     }
 
     useEffect(() => {
+        const unsubscribe = onAuthStateChange(async (user) => {
+            if(user) {
+                setSignedInUser(user);
+                console.log('User signed in:', user);
+                const sanityUserData = await fetchUserById(user.uid);
+                if (!sanityUserData) {
+                    console.log('No user data found');
+                    return;
+                } else {
+                    //await updateLastLogin(uid);
+                    queryClient.setQueryData(["userData"], sanityUserData);
+                }
+
+
+            } else {
+                setSignedInUser(null);
+                // remove user data from cache completely
+                queryClient.removeQueries({ queryKey: ["userData"] });
+                console.log('No user signed in');
+            }
+            setIsLoading(false);
+        });
+
+        return unsubscribe;
+    }, []);
+    useEffect(() => {
         if (emailErrors.length > 0) validateEmail();
     }, [email]);
 
@@ -249,7 +314,13 @@ const FirebaseAuthUI = () => {
                 setFirebaseError(errorMessage);
                 return;
             }
-            console.log('Sign in successful', result);
+            console.log('Sign in with email successful', result);
+            const { uid } = result.user;
+            const sanityUserData = await fetchUserById(uid);
+            if (!sanityUserData) {
+                console.log('No user data found');
+                return;
+            }
         } catch (error) {
             const errorMessage = communicateFirebaseError(error);
             setFirebaseError(errorMessage);
@@ -260,14 +331,24 @@ const FirebaseAuthUI = () => {
         setFirebaseError('');
 
         try {
-            const result = await registerUser(email, password, firstName, lastName);
+            const result = await createUserWithEmailAndPassword(email, password);
 
             if (result instanceof Error) {
                 const errorMessage = communicateFirebaseError(result);
                 setFirebaseError(errorMessage);
                 return;
             }
-            console.log('Register successful', result);
+            const { uid } = result.user;
+            console.log('User:', email, uid);
+            const user = {
+                name: `${firstName} ${lastName}`,
+                email,
+                userId: uid,
+                userType: 'customer' as 'customer' | 'admin' | 'editor' | undefined,
+                lastLogin: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+            };
+            await createUserProfile(user);
         } catch (error: any) {
             console.log(error.message);
             const errorMessage = communicateFirebaseError(error);
@@ -275,18 +356,7 @@ const FirebaseAuthUI = () => {
         }
     };
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChange((user) => {
-            if (user) {
-                setSignedInUser(user);
-            } else {
-                setSignedInUser(null);
-            }
-            setIsLoading(false);
-        });
 
-        return unsubscribe;
-    }, []);
 
     const isRegisterEnabled =
         emailErrors.length === 0 &&
@@ -312,34 +382,33 @@ const FirebaseAuthUI = () => {
         );
     }
 
+    const springTransition = {
+        type: "spring",
+        stiffness: 700,
+        damping: 20
+    };
+
     return (
 
-        <Wrapper>
-            <h2>{isRegisterMode ? 'Register' : 'Logg inn'}</h2>
+        <Wrapper >
             <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: firebaseError ? 1 : 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                transition={springTransition}
                 style={{ opacity: firebaseError ? 1 : 0 }}
             >
                 <Alert severity='error' >
                     {firebaseError}
                 </Alert>
             </motion.div>
+            <Button
+                onClick={handleGoogleSignIn}
+                variant='contained'
+                startIcon={<Google />}
+            > Logg inn med Google
+            </Button>
 
-            {!isRegisterMode && (
-                <>
-                    <Button
-                        onClick={handleGoogleSignIn}
-                        variant='outlined'
-                        color='secondary'
-                        startIcon={<Google />}
-                    > Logg inn med Google
-                    </Button>
-
-                    <Divider style={{ margin: '15px 0' }} />
-                </>
-            )}
+            <Divider style={{ margin: '15px 0' }} />
 
             <TextField
                 required
@@ -370,84 +439,107 @@ const FirebaseAuthUI = () => {
                 helperText={isRegisterMode && passwordErrors.join(', ')}
 
             />
+            <motion.div>
+                <AnimatePresence>
+                    {isRegisterMode && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0, }}
+                                animate={{ opacity: 1, }}
+                                transition={{ ...springTransition }}
+                                key="password"
+                            >
+                                <TextField
+                                    required
+                                    margin="dense"
+                                    id="password"
+                                    label="Skriv inn passord på nytt"
+                                    type="password"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    error={passwordConfirmationErrors.length > 0}
+                                    helperText={passwordConfirmationErrors.join(', ')}
+                                />
+                            </motion.div>
+                            <motion.div
+                                initial={{ opacity: 0, }}
+                                animate={{ opacity: 1, }}
+                                transition={{ ...springTransition }}
+                                key="firstName"
+                            >
+                                <TextField
+                                    required
+                                    margin="dense"
+                                    id="fornavn"
+                                    label="Fornavn"
+                                    type="text"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.target.value)}
+                                    error={nameErrors.length > 0}
+                                    helperText={nameErrors.join(', ')}
+                                    onBlur={validateName}
+                                />
+                            </motion.div>
+                            <motion.div
+                                initial={{ opacity: 0, }}
+                                animate={{ opacity: 1, }}
+                                transition={{ ...springTransition }}
+                                key="lastName"
+                            >
+                                <TextField
+                                    required
+                                    margin="dense"
+                                    id="etternavn"
+                                    label="Etternavn"
+                                    type="text"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.target.value)}
+                                    error={lastNameErrors.length > 0}
+                                    helperText={lastNameErrors.join(', ')}
+                                    onBlur={validateLastName}
+                                />
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
 
-            {isRegisterMode && (
-                <>
-                    <TextField
-                        required
-                        margin="dense"
-                        id="password"
-                        label="SKriv inn passord på nytt"
-                        type="password"
-                        fullWidth
-                        variant="outlined"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        error={passwordConfirmationErrors.length > 0}
-                        helperText={passwordConfirmationErrors.join(', ')}
-                    />
-                    <TextField
-                        required
-                        margin="dense"
-                        id="fornavn"
-                        label="Fornavn"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        error={nameErrors.length > 0}
-                        helperText={nameErrors.join(', ')}
-                        onBlur={validateName}
+                <Button
+                    variant='contained'
+                    onClick={isRegisterMode ? handleRegister : handleEmailSignIn}
+                    disabled={isRegisterMode && !isRegisterEnabled}
+                    style={{ marginTop: '10px' }}
+                >
+                    {isRegisterMode ? 'Register' : 'Logg inn'}
+                </Button>
 
-                    />
-                    <TextField
-                        required
-                        margin="dense"
-                        id="etternavn"
-                        label="Etternavn"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        error={lastNameErrors.length > 0}
-                        helperText={lastNameErrors.join(', ')}
-                        onBlur={validateLastName}
-                    />
-                </>
-            )}
-
-            <Button
-                variant='contained'
-                onClick={isRegisterMode ? handleRegister : handleEmailSignIn}
-                disabled={isRegisterMode && !isRegisterEnabled}
-                style={{ marginTop: '10px' }}
-            >
-                {isRegisterMode ? 'Register' : 'Logg inn'}
-            </Button>
-
-            <div style={{ marginTop: '10px' }}>
-                {isRegisterMode ? (
-                    <p>
-                        Allerede en bruker?{' '}
-                        <StyledLinkSpan onClick={() => {
-                            setIsRegisterMode(false); setFirebaseError('');
-                        }}>
-                            Logg inn
-                        </StyledLinkSpan>
-                    </p>
-                ) : (
-                    <p>
-                        Ny bruker?{' '}
-                        <StyledLinkSpan onClick={() => {
-                            setIsRegisterMode(true); setFirebaseError('');
-                        }}>
-                            Registrer
-                        </StyledLinkSpan>
-                    </p>
-                )}
-            </div>
+                <div style={{ marginTop: '10px' }}>
+                    {isRegisterMode ? (
+                        <p>
+                            Allerede en bruker?{' '}
+                            <StyledLinkSpan onClick={() => {
+                                setIsRegisterMode(false); setFirebaseError('');
+                            }}>
+                                Logg inn
+                            </StyledLinkSpan>
+                        </p>
+                    ) : (
+                        <p>
+                            Ny bruker?{' '}
+                            <StyledLinkSpan onClick={() => {
+                                setIsRegisterMode(true); setFirebaseError('');
+                            }}>
+                                Registrer
+                            </StyledLinkSpan>
+                        </p>
+                    )}
+                </div>
+            </motion.div>
         </Wrapper >
     );
 };

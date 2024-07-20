@@ -7,13 +7,6 @@ import AuthenticationInterface from '../Components/AuthenticationInterface';
 const Home: React.FC = () => {
     return (
         <ViewWrapper >
-            <h1>
-                Delika
-            </h1>
-            <h2>
-                Din Digitale Meny, Enkelt og Intuitivt
-            </h2>
-
             <AuthenticationInterface />
             {/*
             <StripePricingTable id="prctbl_1PZusq2MtWvH2jpOU3cJKZXr"
