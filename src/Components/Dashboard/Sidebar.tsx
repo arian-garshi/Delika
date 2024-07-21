@@ -3,22 +3,22 @@ import styled from 'styled-components';
 import { List, ListItem, ListItemText, ListItemIcon, IconButton } from '@mui/material';
 import { Menu as MenuIcon, BarChart as BarChartIcon, AccountCircle as AccountCircleIcon, Settings as SettingsIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 
-const SidebarContainer = styled.div<{ expanded: boolean }>`
-  width: ${props => (props.expanded ? '250px' : '60px')};
+const SidebarContainer = styled.div<{ $expanded: boolean }>`
+  width: ${props => (props.$expanded ? '250px' : '60px')};
   background-color: #071A2B;
   color: white;
   transition: width 0.3s;
   overflow: hidden;
 `;
 
-const ToggleButtonContainer = styled.div<{ expanded: boolean }>`
+const ToggleButtonContainer = styled.div<{ $expanded: boolean }>`
   display: flex;
-  justify-content: ${props => (props.expanded ? 'flex-end' : 'center')};
+  justify-content: ${props => (props.$expanded ? 'flex-end' : 'center')};
   padding: 8px;
 `;
 
-const StyledListItem = styled(ListItem) <{ active: boolean }>`
-  background-color: ${props => (props.active ? '#083da0' : 'inherit')};
+const StyledListItem = styled(ListItem) <{ $active: boolean }>`
+  background-color: ${props => (props.$active ? '#083da0' : 'inherit')};
   transition: all 0.3s;
   &:hover {
     background-color: #083da0;
@@ -28,7 +28,7 @@ const StyledListItem = styled(ListItem) <{ active: boolean }>`
 `;
 
 const Sidebar = ({ setSelectedOption }: { setSelectedOption: (option: string) => void }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
     const [activeOption, setActiveOption] = useState('');
 
     const toggleSidebar = () => {
@@ -41,8 +41,8 @@ const Sidebar = ({ setSelectedOption }: { setSelectedOption: (option: string) =>
     };
 
     return (
-        <SidebarContainer expanded={isExpanded}>
-            <ToggleButtonContainer expanded={isExpanded}>
+        <SidebarContainer $expanded={isExpanded}>
+            <ToggleButtonContainer $expanded={isExpanded}>
                 <IconButton onClick={toggleSidebar}>
                     {isExpanded ? <ChevronLeftIcon style={{ color: 'white' }} /> : <ChevronRightIcon style={{ color: 'white' }} />}
                 </IconButton>
@@ -55,9 +55,8 @@ const Sidebar = ({ setSelectedOption }: { setSelectedOption: (option: string) =>
                     { text: 'Innstillinger', icon: <SettingsIcon /> },
                 ].map(({ text, icon }) => (
                     <StyledListItem
-                        
                         key={text}
-                        active={activeOption === text}
+                        $active={activeOption === text}
                         onClick={() => handleOptionClick(text)}
                     >
                         <ListItemIcon style={{ color: 'white' }}>{icon}</ListItemIcon>

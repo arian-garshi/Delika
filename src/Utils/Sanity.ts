@@ -65,7 +65,6 @@ export const fetchUserById = async (id: string): Promise<UserProfile | undefined
 
     try {
         const user = await client.fetch(query, { id });
-        console.log('Fetched user:', user);
         return user || undefined;
     } catch (error) {
         console.error('Error fetching user:', error);

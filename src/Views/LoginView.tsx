@@ -1,4 +1,4 @@
-import AuthenticationInterface from '../Components/AuthenticationInterface';
+import AuthenticationInterface from '../Components/AuthForm';
 import ViewWrapper from '../Components/ViewWrapper';
 
 const Login: React.FC = () => {

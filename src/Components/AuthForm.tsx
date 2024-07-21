@@ -1,11 +1,12 @@
 import { useState, useEffect, SetStateAction } from 'react';
 import { Button, TextField, Divider, Alert } from '@mui/material';
-import { signInWithGoogle, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChange } from '../Utils/Firebase'; // Adjust the import paths as necessary
+import { onAuthStateChange } from '../Utils/Firebase'; // Adjust the import paths as necessary
 import { Google } from '@mui/icons-material';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchUserById, createUserProfile } from '../Utils/Sanity';
 import { useQueryClient } from '@tanstack/react-query';
+import useAuthMutations from '../Hooks/useAuthMutations';
 
 const StyledLinkSpan = styled.span`
      color: #90b8fa;
@@ -52,7 +53,7 @@ const nameRequirements = {
 };
 
 
-const communicateFirebaseError = (error: any) => {
+export const communicateFirebaseError = (error: any) => {
     console.log(error);
     console.log(error.code);
     console.log(error.message);
@@ -90,7 +91,7 @@ const communicateFirebaseError = (error: any) => {
 
 }
 
-const FirebaseAuthUI = () => {
+const AuthForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -109,57 +110,27 @@ const FirebaseAuthUI = () => {
 
     const [lastNameErrors, setLastNameErrors] = useState<string[]>([]);
     const queryClient = useQueryClient();
+    const { useEmailSignInMutation, useGoogleSignInMutation, useRegisterMutation } = useAuthMutations();
 
-    /*
-    const { data, status } = useQuery<UserProfile, Error>({
-        queryKey: ["userData", signedInUser?.uid],
-        enabled: !!signedInUser?.uid,
-        queryFn: async () => {
-            const user = await fetchUserById(signedInUser?.userId);
-            queryClient.setQueryData(["usr", signedInUser?.uid], user);
-            return user as UserProfile;
-
-        },
-    });
-
-    console.log(data);
-*/
-    //if (status === 'pending') return <CircularProgress />;
-    //if (status === 'error') return <Typography>Error loading project details</Typography>;
+    const emailSignInMutation = useEmailSignInMutation({ email, password, setFirebaseError });
+    const googleSignInMutation = useGoogleSignInMutation({ setFirebaseError });
+    const registerMutation = useRegisterMutation({ email, password, firstName, lastName, setFirebaseError });
 
     const handleGoogleSignIn = async () => {
         setFirebaseError('');
-        try {
-            const result = await signInWithGoogle();
-            if (result instanceof Error) {
-                const errorMessage = communicateFirebaseError(result);
-                setFirebaseError(errorMessage);
-                return;
-            }
-            console.log('Sign in successful with google', result);
-            const { uid } = result.user;
-
-
-            const sanityUserData = await fetchUserById(uid);
-            if (!sanityUserData) {
-                console.log('No user data found');
-                const user = {
-                    name: result.user.displayName,
-                    email: result.user.email,
-                    userId: uid,
-                    userType: 'customer' as 'customer' | 'admin' | 'editor' | undefined,
-                    lastLogin: new Date().toISOString(),
-                    createdAt: new Date().toISOString(),
-                };
-                await createUserProfile(user);
-
-                return;
-            } 
-        } catch (error) {
-            console.error('Google sign-in error:', error);
-            setFirebaseError('Ukjent feil ved innlogging med Google');
-        }
+        googleSignInMutation.mutate();
     };
+
+    const handleEmailSignIn = async () => {
+        setFirebaseError('');
+        emailSignInMutation.mutate();
+    };
+
+    const handleRegister = async () => {
+        setFirebaseError('');
+        registerMutation.mutate();
+    };
+
 
     const validateEmail = () => {
 
@@ -260,30 +231,23 @@ const FirebaseAuthUI = () => {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChange(async (user) => {
-            if(user) {
+            if (user) {
                 setSignedInUser(user);
-                console.log('User signed in:', user);
-                const sanityUserData = await fetchUserById(user.uid);
-                if (!sanityUserData) {
-                    console.log('No user data found');
-                    return;
-                } else {
-                    //await updateLastLogin(uid);
-                    queryClient.setQueryData(["userData"], sanityUserData);
+                const userData = await fetchUserById(user.uid);
+                if (userData) {
+                    queryClient.setQueryData(['userData'], userData);
                 }
-
 
             } else {
                 setSignedInUser(null);
-                // remove user data from cache completely
-                queryClient.removeQueries({ queryKey: ["userData"] });
-                console.log('No user signed in');
+                queryClient.setQueryData(['userData'], null);
             }
             setIsLoading(false);
         });
 
         return unsubscribe;
     }, []);
+
     useEffect(() => {
         if (emailErrors.length > 0) validateEmail();
     }, [email]);
@@ -304,57 +268,7 @@ const FirebaseAuthUI = () => {
         if (lastNameErrors.length > 0) validateLastName();
     }, [lastName]);
 
-    const handleEmailSignIn = async () => {
-        setFirebaseError('');
 
-        try {
-            const result = await signInWithEmailAndPassword(email, password);
-            if (result instanceof Error) {
-                const errorMessage = communicateFirebaseError(result);
-                setFirebaseError(errorMessage);
-                return;
-            }
-            console.log('Sign in with email successful', result);
-            const { uid } = result.user;
-            const sanityUserData = await fetchUserById(uid);
-            if (!sanityUserData) {
-                console.log('No user data found');
-                return;
-            }
-        } catch (error) {
-            const errorMessage = communicateFirebaseError(error);
-            setFirebaseError(errorMessage);
-        }
-    };
-
-    const handleRegister = async () => {
-        setFirebaseError('');
-
-        try {
-            const result = await createUserWithEmailAndPassword(email, password);
-
-            if (result instanceof Error) {
-                const errorMessage = communicateFirebaseError(result);
-                setFirebaseError(errorMessage);
-                return;
-            }
-            const { uid } = result.user;
-            console.log('User:', email, uid);
-            const user = {
-                name: `${firstName} ${lastName}`,
-                email,
-                userId: uid,
-                userType: 'customer' as 'customer' | 'admin' | 'editor' | undefined,
-                lastLogin: new Date().toISOString(),
-                createdAt: new Date().toISOString(),
-            };
-            await createUserProfile(user);
-        } catch (error: any) {
-            console.log(error.message);
-            const errorMessage = communicateFirebaseError(error);
-            setFirebaseError(errorMessage);
-        }
-    };
 
 
 
@@ -544,4 +458,4 @@ const FirebaseAuthUI = () => {
     );
 };
 
-export default FirebaseAuthUI;
+export default AuthForm;
