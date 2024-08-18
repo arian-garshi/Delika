@@ -1,5 +1,5 @@
 // MainContent.js
-import { Typography, Breadcrumbs, Link } from '@mui/material';
+import { Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import NoEntries from './Menu/NoEntries';
