@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+// import { initializeApp } from "firebase/app";
 import {
     getAuth,
     signInWithPopup,
@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 
 // Your web app's Firebase configuration
+/*
 const firebaseConfig = {
     apiKey: "AIzaSyAgM7oowVFrK1RuCOjUkPwt-wXtjq9Aztg",
     authDomain: "delika-bc9be.firebaseapp.com",
@@ -19,7 +20,7 @@ const firebaseConfig = {
     appId: "1:922740478818:web:51e5e3dfd5e63de573123b",
     measurementId: "G-2TQT6JSH7M"
 };
-
+*/
 // Initialize Firebase
 // const app = initializeApp(firebaseConfig);
 
