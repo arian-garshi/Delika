@@ -5,8 +5,9 @@ import Navbar from './Components/Navbar';
 import NotFound from './Views/NotFoundView';
 import UserProfileView from './Views/UserProfileView';
 import TermsAndConditions from './Views/TermsAndConditionsView';
+import CreateRestaurantView from './Views/CreateRestaurantView';
 import DashboardView from './Views/DashboardView';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { onAuthStateChange } from './Utils/Firebase';
 import { fetchUserById } from './Utils/Sanity';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -36,7 +37,6 @@ const AppRoutes = () => {
         queryKey: ['userData']
     });
 
-
     return (
         <Router>
             <Navbar />
@@ -45,6 +45,7 @@ const AppRoutes = () => {
                 <Route path="/login" element={ userData ? <Home /> : <Login />} />
                 <Route path="/profile" element={ userData ? <UserProfileView /> : <Login />} />
                 <Route path="/dashboard" element={ userData ? <DashboardView /> : <Login />} />
+                <Route path="/create-restaurant" element={ userData ? <CreateRestaurantView /> : <Login />} />
                 <Route path="/terms" element={<TermsAndConditions />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>

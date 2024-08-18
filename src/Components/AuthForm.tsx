@@ -1,11 +1,8 @@
 import { useState, useEffect, SetStateAction } from 'react';
 import { Button, TextField, Divider, Alert } from '@mui/material';
-import { onAuthStateChange } from '../Utils/Firebase'; // Adjust the import paths as necessary
 import { Google } from '@mui/icons-material';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchUserById, createUserProfile } from '../Utils/Sanity';
-import { useQueryClient } from '@tanstack/react-query';
 import useAuthMutations from '../Hooks/useAuthMutations';
 
 const StyledLinkSpan = styled.span`
@@ -92,15 +89,13 @@ export const communicateFirebaseError = (error: any) => {
 }
 
 const AuthForm = () => {
+    const [isRegisterMode, setIsRegisterMode] = useState(false);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-
-    const [isRegisterMode, setIsRegisterMode] = useState(false);
-    const [signedInUser, setSignedInUser] = useState<any | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
     const [firebaseError, setFirebaseError] = useState<string>('');
     const [emailErrors, setEmailErrors] = useState<string[]>([]);
@@ -109,7 +104,7 @@ const AuthForm = () => {
     const [nameErrors, setNameErrors] = useState<string[]>([]);
 
     const [lastNameErrors, setLastNameErrors] = useState<string[]>([]);
-    const queryClient = useQueryClient();
+
     const { useEmailSignInMutation, useGoogleSignInMutation, useRegisterMutation } = useAuthMutations();
 
     const emailSignInMutation = useEmailSignInMutation({ email, password, setFirebaseError });
@@ -230,25 +225,6 @@ const AuthForm = () => {
     }
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChange(async (user) => {
-            if (user) {
-                setSignedInUser(user);
-                const userData = await fetchUserById(user.uid);
-                if (userData) {
-                    queryClient.setQueryData(['userData'], userData);
-                }
-
-            } else {
-                setSignedInUser(null);
-                queryClient.setQueryData(['userData'], null);
-            }
-            setIsLoading(false);
-        });
-
-        return unsubscribe;
-    }, []);
-
-    useEffect(() => {
         if (emailErrors.length > 0) validateEmail();
     }, [email]);
 
@@ -268,10 +244,6 @@ const AuthForm = () => {
         if (lastNameErrors.length > 0) validateLastName();
     }, [lastName]);
 
-
-
-
-
     const isRegisterEnabled =
         emailErrors.length === 0 &&
         passwordErrors.length === 0 &&
@@ -283,18 +255,6 @@ const AuthForm = () => {
         confirmPassword !== '' &&
         firstName !== '' &&
         lastName !== '';
-
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
-
-    if (signedInUser) {
-        return (
-            <div>
-                <h2>Welcome, {signedInUser.email}</h2>
-            </div>
-        );
-    }
 
     const springTransition = {
         type: "spring",

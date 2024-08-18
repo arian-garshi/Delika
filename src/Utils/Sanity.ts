@@ -1,10 +1,10 @@
 import { createClient } from '@sanity/client';
 import imageUrlBuilder from '@sanity/image-url';
-import { UserProfile } from './Interfaces';
+import { UserProfile, Shop } from './Interfaces';
 
 const client = createClient({
-    projectId: "1o0mv0nx", // replace with your-project-id
-    dataset: "production", // replace with your-dataset
+    projectId: "1o0mv0nx", 
+    dataset: "production", 
     useCdn: true,
     token: "skEoofEMODNs7WvBPTEGe6EEJpjv04SmbbFDF56Xo0OAfrqp1Ry9CNXMmiwZsZgpzQVzT7vCC2AuFwga3nD8J4qqOqbYQYvRJtLBep6JS2bUqGT8ksIN5HKppIm9nF4tavRJCZ8d4Jq4TbIcg7SGuFQ7MdCGVNCFiEQG3PWdpHoKhaORD5Ew",
 });
@@ -32,6 +32,32 @@ export const generateImageUrl = (_ref: string, width: number, height: number): s
 
     return imageBuilder.url();
 }
+
+export const createShop = async (shop: Shop) => {
+    const { name, slug, street, city, country, postalCode, phone, email, website, description } = shop;
+
+    const doc = {
+        _type: 'shops',
+        name,
+        slug,
+        street,
+        city,
+        country,
+        postalCode,
+        phone,
+        email,
+        website,
+        description,
+    };
+
+    try {
+        const result = await client.create(doc);
+        return result;
+    } catch (error) {
+        console.error('Error creating shop:', error);
+        throw new Error('Could not create shop');
+    }
+};
 
 export const createUserProfile = async (user: UserProfile) => {
     const { name, email, userType, shop, createdAt, lastLogin, userId } = user;

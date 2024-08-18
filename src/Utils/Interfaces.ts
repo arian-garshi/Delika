@@ -10,3 +10,16 @@ export interface UserProfile {
     lastLogin?: string;
     userId: string;
 }
+
+export interface Shop {
+    name: string;
+    slug: string;
+    street?: string;
+    city?: string;
+    country?: string;
+    postalCode?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    description?: string;
+}
